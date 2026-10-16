@@ -150,6 +150,7 @@ static void *es8388_workerthread(pthread_addr_t pvarg);
 static void es8388_audio_output(FAR struct es8388_dev_s *priv);
 static void es8388_audio_input(FAR struct es8388_dev_s *priv);
 static void es8388_reset(FAR struct es8388_dev_s *priv);
+static uint8_t es8388_dacoutputs(FAR struct es8388_dev_s *priv);
 
 /****************************************************************************
  * Private Data
@@ -1515,11 +1516,8 @@ static int es8388_start(FAR struct audio_lowerhalf_s *dev)
       priv->audio_mode == ES_MODULE_DAC)
     {
       es8388_writereg(priv, ES8388_DACPOWER,
-                      ES8388_ROUT2_ENABLE  |
-                      ES8388_LOUT2_ENABLE  |
-                      ES8388_ROUT1_ENABLE  |
-                      ES8388_LOUT1_ENABLE  |
-                      ES8388_PDNDACR_PWRUP |
+                      es8388_dacoutputs(priv) |
+                      ES8388_PDNDACR_PWRUP    |
                       ES8388_PDNDACL_PWRUP);
     }
 
@@ -2210,6 +2208,37 @@ static void *es8388_workerthread(pthread_addr_t pvarg)
 }
 
 /****************************************************************************
+ * Name: es8388_dacoutputs
+ *
+ * Description:
+ *   Return the DACPOWER output enable bits for the configured DAC output:
+ *   Line 1 is LOUT1/ROUT1, Line 2 is LOUT2/ROUT2.
+ *
+ * Input Parameters:
+ *   priv - A reference to the driver state structure.
+ *
+ * Returned Value:
+ *   The ES8388_xOUTn_ENABLE bits to write to DACPOWER.
+ *
+ ****************************************************************************/
+
+static uint8_t es8388_dacoutputs(FAR struct es8388_dev_s *priv)
+{
+  switch (priv->dac_output)
+    {
+      case ES8388_DAC_OUTPUT_LINE1:
+        return ES8388_LOUT1_ENABLE | ES8388_ROUT1_ENABLE;
+
+      case ES8388_DAC_OUTPUT_LINE2:
+        return ES8388_LOUT2_ENABLE | ES8388_ROUT2_ENABLE;
+
+      default:
+        return ES8388_LOUT1_ENABLE | ES8388_ROUT1_ENABLE |
+               ES8388_LOUT2_ENABLE | ES8388_ROUT2_ENABLE;
+    }
+}
+
+/****************************************************************************
  * Name: es8388_reset
  *
  * Description:
@@ -2351,21 +2380,7 @@ static void es8388_reset(FAR struct es8388_dev_s *priv)
   es8388_setvolume(priv, ES_MODULE_DAC, CONFIG_ES8388_OUTPUT_INITVOLUME);
 #endif
 
-  if (priv->dac_output == ES8388_DAC_OUTPUT_LINE2)
-    {
-      regconfig = ES_DAC_CHANNEL_LOUT1 | ES_DAC_CHANNEL_ROUT1;
-    }
-  else if (priv->dac_output == ES8388_DAC_OUTPUT_LINE1)
-    {
-      regconfig = ES_DAC_CHANNEL_LOUT2 | ES_DAC_CHANNEL_ROUT2;
-    }
-  else
-    {
-      regconfig = ES_DAC_CHANNEL_LOUT1 | ES_DAC_CHANNEL_ROUT1 |
-                  ES_DAC_CHANNEL_LOUT2 | ES_DAC_CHANNEL_ROUT2;
-    }
-
-  es8388_writereg(priv, ES8388_DACPOWER, regconfig);
+  es8388_writereg(priv, ES8388_DACPOWER, es8388_dacoutputs(priv));
 
   es8388_writereg(priv, ES8388_ADCPOWER,
                   ES8388_INT1LP_LP        |
