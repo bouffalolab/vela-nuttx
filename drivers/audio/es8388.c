@@ -1046,14 +1046,17 @@ static int es8388_configure(FAR struct audio_lowerhalf_s *dev,
             break;
           }
 
-        /* Save the current stream configuration */
+        /* es8388_reset() restores the default stream format, so save
+         * the requested one after it.
+         */
+
+        es8388_audio_output(priv);
+        es8388_reset(priv);
 
         priv->samprate  = caps->ac_controls.hw[0];
         priv->nchannels = caps->ac_channels;
         priv->bpsamp    = caps->ac_controls.b[2];
 
-        es8388_audio_output(priv);
-        es8388_reset(priv);
         es8388_setsamplerate(priv);
         es8388_setbitspersample(priv);
 
@@ -1089,14 +1092,17 @@ static int es8388_configure(FAR struct audio_lowerhalf_s *dev,
             break;
           }
 
-        /* Save the current stream configuration */
+        /* es8388_reset() restores the default stream format, so save
+         * the requested one after it.
+         */
+
+        es8388_audio_input(priv);
+        es8388_reset(priv);
 
         priv->samprate  = caps->ac_controls.hw[0];
         priv->nchannels = caps->ac_channels;
         priv->bpsamp    = caps->ac_controls.b[2];
 
-        es8388_audio_input(priv);
-        es8388_reset(priv);
         es8388_setsamplerate(priv);
         es8388_setbitspersample(priv);
 
