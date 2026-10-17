@@ -1429,12 +1429,8 @@ static int es8388_start(FAR struct audio_lowerhalf_s *dev)
   pthread_attr_t tattr;
   FAR void *value;
   int ret;
-  uint8_t prev_regval = 0;
-  uint8_t regval = 0;
 
   audinfo("ES8388 Start\n");
-
-  prev_regval = es8388_readreg(priv, ES8388_DACCONTROL21);
 
   if (priv->audio_mode == ES_MODULE_LINE)
     {
@@ -1471,30 +1467,31 @@ static int es8388_start(FAR struct audio_lowerhalf_s *dev)
                       ES8388_SLRCK_SAME);
     }
 
-  regval = es8388_readreg(priv, ES8388_DACCONTROL21);
+  /* Reset the state machines and the digital blocks on every start, after
+   * the sample rate, the MCLK divider and the format are set. Without it,
+   * in about 2 % of the streams on a tested board, the ADC sent the sign
+   * bit of the previous sample.
+   */
 
-  if (regval != prev_regval)
-    {
-      es8388_writereg(priv, ES8388_CHIPPOWER,
-                      ES8388_DACVREF_PDN_PWRUP |
-                      ES8388_ADCVREF_PDN_PWRUP |
-                      ES8388_DACDLL_PDN_NORMAL |
-                      ES8388_ADCDLL_PDN_NORMAL |
-                      ES8388_DAC_STM_RST_RESET |
-                      ES8388_ADC_STM_RST_RESET |
-                      ES8388_DAC_DIGPDN_RESET  |
-                      ES8388_ADC_DIGPDN_RESET);
+  es8388_writereg(priv, ES8388_CHIPPOWER,
+                  ES8388_DACVREF_PDN_PWRUP |
+                  ES8388_ADCVREF_PDN_PWRUP |
+                  ES8388_DACDLL_PDN_NORMAL |
+                  ES8388_ADCDLL_PDN_NORMAL |
+                  ES8388_DAC_STM_RST_RESET |
+                  ES8388_ADC_STM_RST_RESET |
+                  ES8388_DAC_DIGPDN_RESET  |
+                  ES8388_ADC_DIGPDN_RESET);
 
-      es8388_writereg(priv, ES8388_CHIPPOWER,
-                      ES8388_DACVREF_PDN_PWRUP  |
-                      ES8388_ADCVREF_PDN_PWRUP  |
-                      ES8388_DACDLL_PDN_NORMAL  |
-                      ES8388_ADCDLL_PDN_NORMAL  |
-                      ES8388_DAC_STM_RST_NORMAL |
-                      ES8388_ADC_STM_RST_NORMAL |
-                      ES8388_DAC_DIGPDN_NORMAL  |
-                      ES8388_ADC_DIGPDN_NORMAL);
-    }
+  es8388_writereg(priv, ES8388_CHIPPOWER,
+                  ES8388_DACVREF_PDN_PWRUP  |
+                  ES8388_ADCVREF_PDN_PWRUP  |
+                  ES8388_DACDLL_PDN_NORMAL  |
+                  ES8388_ADCDLL_PDN_NORMAL  |
+                  ES8388_DAC_STM_RST_NORMAL |
+                  ES8388_ADC_STM_RST_NORMAL |
+                  ES8388_DAC_DIGPDN_NORMAL  |
+                  ES8388_ADC_DIGPDN_NORMAL);
 
   if (priv->audio_mode == ES_MODULE_LINE    ||
       priv->audio_mode == ES_MODULE_ADC_DAC ||
