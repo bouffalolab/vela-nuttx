@@ -82,7 +82,7 @@ static void es8388_setmute(FAR struct es8388_dev_s *priv,
                            bool enable);
 #endif
 static void es8388_setmicgain(FAR struct es8388_dev_s *priv, uint32_t gain);
-static void es8388_setbitspersample(FAR struct es8388_dev_s *priv);
+static int es8388_setbitspersample(FAR struct es8388_dev_s *priv);
 static void es8388_setsamplerate(FAR struct es8388_dev_s *priv);
 static int  es8388_getcaps(FAR struct audio_lowerhalf_s *dev,
                            int type,
@@ -611,14 +611,17 @@ static void es8388_setmute(FAR struct es8388_dev_s *priv,
  *   priv - A reference to the driver state structure.
  *
  * Returned Value:
- *   None.
+ *   OK on success; a negated errno value if the width is not supported or
+ *   the I2S driver rejects it.  The codec word length is left unchanged on
+ *   failure.
  *
  ****************************************************************************/
 
-static void es8388_setbitspersample(FAR struct es8388_dev_s *priv)
+static int es8388_setbitspersample(FAR struct es8388_dev_s *priv)
 {
   uint8_t reg;
   uint8_t bit_config;
+  int ret;
 
   DEBUGASSERT(priv && priv->lower);
 
@@ -646,11 +649,27 @@ static void es8388_setbitspersample(FAR struct es8388_dev_s *priv)
 
       default:
         audwarn("Data length not supported.\n");
-        return;
+        return -EINVAL;
     }
 
-  I2S_TXDATAWIDTH(priv->i2s, priv->bpsamp);
-  I2S_RXDATAWIDTH(priv->i2s, priv->bpsamp);
+  /* An I2S driver returns a negated errno for a width it cannot use
+   * (es8311 checks it the same way). Stop before the codec word length is
+   * changed, so that the codec and the I2S driver never disagree.
+   */
+
+  ret = I2S_TXDATAWIDTH(priv->i2s, priv->bpsamp);
+  if (ret < 0)
+    {
+      auderr("I2S_TXDATAWIDTH failed: %d\n", ret);
+      return ret;
+    }
+
+  ret = I2S_RXDATAWIDTH(priv->i2s, priv->bpsamp);
+  if (ret < 0)
+    {
+      auderr("I2S_RXDATAWIDTH failed: %d\n", ret);
+      return ret;
+    }
 
   if (priv->audio_mode == ES_MODULE_ADC ||
       priv->audio_mode == ES_MODULE_ADC_DAC)
@@ -671,6 +690,7 @@ static void es8388_setbitspersample(FAR struct es8388_dev_s *priv)
     }
 
   audinfo("Datawidth set to %u\n", priv->bpsamp);
+  return OK;
 }
 
 /****************************************************************************
@@ -1059,9 +1079,7 @@ static int es8388_configure(FAR struct audio_lowerhalf_s *dev,
         priv->bpsamp    = caps->ac_controls.b[2];
 
         es8388_setsamplerate(priv);
-        es8388_setbitspersample(priv);
-
-        ret = OK;
+        ret = es8388_setbitspersample(priv);
       }
       break;
 
@@ -1105,9 +1123,7 @@ static int es8388_configure(FAR struct audio_lowerhalf_s *dev,
         priv->bpsamp    = caps->ac_controls.b[2];
 
         es8388_setsamplerate(priv);
-        es8388_setbitspersample(priv);
-
-        ret = OK;
+        ret = es8388_setbitspersample(priv);
       }
       break;
 
