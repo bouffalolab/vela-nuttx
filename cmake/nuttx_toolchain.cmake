@@ -96,7 +96,15 @@ if(NOT NUTTX_TOOLCHAIN_PREPROCESS_DEFINED)
     if((CMAKE_GENERATOR MATCHES "Ninja|Makefiles")
        AND (CMAKE_C_COMPILER_ID STREQUAL "GNU" OR CMAKE_C_COMPILER_ID MATCHES
                                                   "Clang"))
-      set(preprocess_depfile ${TARGET_FILE}.d)
+      # Keep the depfile out of the output directory: ROMFS packs the directory
+      # of the preprocessed rc scripts as is.
+
+      get_filename_component(preprocess_target ${TARGET_FILE} ABSOLUTE BASE_DIR
+                             ${CMAKE_CURRENT_BINARY_DIR})
+      string(MAKE_C_IDENTIFIER ${preprocess_target} preprocess_depname)
+      set(preprocess_depdir ${CMAKE_BINARY_DIR}/CMakeFiles/preprocess)
+      file(MAKE_DIRECTORY ${preprocess_depdir})
+      set(preprocess_depfile ${preprocess_depdir}/${preprocess_depname}.d)
       list(
         APPEND
         preprocess_depflags
