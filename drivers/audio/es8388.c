@@ -2393,7 +2393,9 @@ static void es8388_reset(FAR struct es8388_dev_s *priv)
   es8388_setvolume(priv, ES_MODULE_DAC, CONFIG_ES8388_OUTPUT_INITVOLUME);
 #endif
 
-  es8388_writereg(priv, ES8388_DACPOWER, es8388_dacoutputs(priv));
+  /* Leave the DAC and its outputs powered down: es8388_start() powers
+   * them up for playback. A powered DAC adds noise to a recording.
+   */
 
   es8388_writereg(priv, ES8388_ADCPOWER,
                   ES8388_INT1LP_LP        |
