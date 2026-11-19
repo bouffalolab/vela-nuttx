@@ -980,10 +980,13 @@ struct es8388_dev_s
 
 static const struct mclk_rate_s es8388_mclk_rate[] =
 {
-  /* 8kHz support is board dependent */
-
   /* 12.288 MHz */
 
+  {
+    12288000, /* mclk        */
+    8000,     /* sample_rate */
+    1536,     /* multiple    */
+  },
   {
     12288000, /* mclk        */
     12000,    /* sample_rate */
