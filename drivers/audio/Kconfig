@@ -230,6 +230,7 @@ config AUDIO_ES8388
 	bool "ES8388 codec chip"
 	default n
 	depends on AUDIO
+	depends on !DISABLE_PTHREAD
 	select AUDIO_DRIVER_SPECIFIC_BUFFERS
 	---help---
 		Select to enable support for the ES8388 Audio codec by Everest
